@@ -35,7 +35,7 @@ body {
 	background: linear-gradient(
 		75deg, #17931c, #15c11b, #8bb92e,#13c119, #1c8b1f, #11d417, #92c52b, #11dc18, #18851b
 	);
-	background-size: 800%;
+	background-size: 300%;
 	border-radius: 10px;
 	filter: blur(8px);
 	animation: glowing 100s linear infinite;

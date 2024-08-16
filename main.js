@@ -1,174 +1,84 @@
-const fs = require('fs');
 function compararArchivos() {
-
-  const carpeta = './Datos_Registros';
-  const archivos = fs.readdirSync(carpeta);
-
-  function filtrarArchivosPorMes(archivos) {
-    return archivos.filter(archivo => archivo.endsWith('_mes.txt'));
+  // Obtener la fecha seleccionada
+  const fechaSeleccionada = document.getElementById('input-texto').value.trim();
+  if (!fechaSeleccionada) {
+      alert('Por favor, ingresa una fecha en el formato DD-MM-AAAA');
+      return;
   }
 
-  function filtrarArchivosPorDia(archivos) {
-    return archivos.filter(archivo => !archivo.endsWith('_mes.txt'));
+  // Obtener los archivos seleccionados
+  const archivo1 = document.getElementById('archivo1').files[0];
+  const archivo2 = document.getElementById('archivo2').files[0];
+
+  if (!archivo1 || !archivo2) {
+      alert('Por favor, selecciona dos archivos para comparar');
+      return;
   }
 
-  const archivosdia = filtrarArchivosPorDia(archivos);
-  const archivomes = filtrarArchivosPorMes(archivos);
-  
-  console.log(archivomes);
-  console.log(archivosdia);
-  console.log(archivos);
+  // Leer archivos y procesar
+  const lector1 = new FileReader();
+  const lector2 = new FileReader();
 
-  const reader1 = new FileReader()
-  const reader2 = new FileReader()
+  lector1.onload = function(event) {
+      const contenido1 = event.target.result.split('\n').map(line => line.trim());
+      lector2.onload = function(event) {
+          const contenido2 = event.target.result.split('\n').map(line => line.trim());
 
-  // Función que se ejecutará cuando se completen ambas lecturas de archivos
-  function onLoadHandler () {
-    const decoder = new TextDecoder('utf-8')
-    const contenido1 = decoder.decode(reader1.result)
-    const contenido2 = decoder.decode(reader2.result)
+          // Filtrar registros por fecha seleccionada
+          const registros1 = contenido1.filter(line => line.includes(fechaSeleccionada));
+          const registros2 = contenido2.filter(line => line.includes(fechaSeleccionada));
 
-    let contadorIguales = 0
-    let contadorDiferentes = 0
+          // Comparar los registros y encontrar los diferentes
+          const registrosDiferentes = encontrarDiferencias(registros1, registros2);
 
-    const lineasArchivo1 = contenido1.split('\n')
-    const lineasArchivo2 = contenido2.split('\n')
-
-    const camposarchivo1 = lineasArchivo1.map(linea => linea.split(';'))
-    const camposarchivo2 = lineasArchivo2.map(linea => linea.split(';'))
-
-    const input = document.getElementById('input-texto')
-    const fechaBuscada = input.value
-    const camposComparacion = [2, 4, 5, 6, 11]
-
-    const registrosArchivo1ConFecha = camposarchivo1.filter(registro => registro[5] === fechaBuscada)
-    const registrosArchivo2ConFecha = camposarchivo2.filter(registro => registro[5] === fechaBuscada)
-    
-    console.log(registrosArchivo1ConFecha)
-    console.log(registrosArchivo2ConFecha)
-    
-    registrosArchivo1ConFecha.sort((a, b) => a[6] < b[6] ? -1 : 1);
-    registrosArchivo2ConFecha.sort((a, b) => a[6] < b[6] ? -1 : 1);
-    
-    const registrosDiferentes = []
-    
-    const registrosArchivo2 = {}
-    for (let i = 0; i < registrosArchivo2ConFecha.length; i++) {
-      const registroComparacion = camposComparacion.map(j => registrosArchivo2ConFecha[i][j])
-      registrosArchivo2[JSON.stringify(registroComparacion)] = registrosArchivo2ConFecha[i]
-    }
-    
-    for (let i = 0; i < registrosArchivo1ConFecha.length; i++) {
-      const registroComparacion = camposComparacion.map(j => registrosArchivo1ConFecha[i][j])
-      if (registrosArchivo2[JSON.stringify(registroComparacion)]) {
-        contadorIguales++
-      } else {
-        contadorDiferentes++
-        registrosDiferentes.push(registrosArchivo1ConFecha[i])
-      }
-    }
-    
-    const registrosArchivo1 = {}
-    for (let i = 0; i < registrosArchivo1ConFecha.length; i++) {
-      const registroComparacion = camposComparacion.map(j => registrosArchivo1ConFecha[i][j])
-      registrosArchivo1[JSON.stringify(registroComparacion)] = registrosArchivo1ConFecha[i]
-    }
-    
-    for (let i = 0; i < registrosArchivo2ConFecha.length; i++) {
-      const registroComparacion = camposComparacion.map(j => registrosArchivo2ConFecha[i][j])
-      if (registrosArchivo1[JSON.stringify(registroComparacion)]) {
-      } else {
-        contadorDiferentes++
-        registrosDiferentes.push(registrosArchivo2ConFecha[i])
-      }
-    }
-    
-  
-   console.log(registrosDiferentes)
-   registrosDiferentes.sort((a, b) => a[6] < b[6] ? -1 : 1);
-
-  
-    let registrosDiferentesTexto = '';
-    registrosDiferentes.forEach(registro => {
-      registrosDiferentesTexto += registro.join(';') + '\n'; // Separar los campos y las líneas
-    });
-
-    // Crear un enlace de descarga para el archivo
-    const enlaceDescarga = document.createElement('a');
-    enlaceDescarga.href = URL.createObjectURL(new Blob([registrosDiferentesTexto], { type: 'text/plain' }));
-    enlaceDescarga.download = `registros_diferentes_${fechaBuscada}.txt`;
-    enlaceDescarga.hidden = true;
-    document.body.appendChild(enlaceDescarga);
-
-    // Simular un clic en el enlace para descargar el archivo
-    enlaceDescarga.click();
-
-    const tablaBody = document.getElementById('tablabody')
-    tablaBody.innerHTML = ''
-
-    registrosDiferentes.forEach(fila => {
-      const tr = document.createElement('tr')
-      fila.forEach(valor => {
-        const td = document.createElement('td')
-        td.textContent = valor
-        tr.appendChild(td)
-      })
-      tablaBody.appendChild(tr)
-    })
-
-    document.getElementById('resultadocontenido1').textContent = `Se encontraron ${contadorIguales} registros iguales.`
-    document.getElementById('resultadocontenido2').textContent = `Se encontraron ${contadorDiferentes} registros diferentes.`
-  }
-
-  function onProgressHandler (event) {
-    // Calcular el porcentaje de carga de los archivos
-    const porcentaje = Math.round((event.loaded / event.total) * 100)
-    document.getElementById('barraProgreso').value = porcentaje
-  }
-
-  // Asignar las funciones de manejo de eventos a los FileReader
-  reader1.onload = onLoadHandler
-  reader2.onload = onLoadHandler
-  reader1.onprogress = onProgressHandler
-  reader2.onprogress = onProgressHandler
-
-
-  reader1.readAsArrayBuffer(archivomes)
-  reader2.readAsArrayBuffer(archivosdia)
-
-  
+          // Mostrar resultados en la tabla
+          mostrarResultados(registrosDiferentes);
+      };
+      lector2.readAsText(archivo2);
+  };
+  lector1.readAsText(archivo1);
 }
 
-const searchInput = document.getElementById('search')
+function encontrarDiferencias(registros1, registros2) {
+  const setRegistros1 = new Set(registros1);
+  const setRegistros2 = new Set(registros2);
 
-searchInput.addEventListener('keyup', () => {
-  const searchTerm = searchInput.value.toLowerCase()
-  filterTable(searchTerm)
-})
+  const diferencias = [];
 
-function filterTable (searchTerm) {
-  const table = document.getElementById('tablabody')
-  const rows = table.getElementsByTagName('tr')
-
-  for (let i = 0; i < rows.length; i++) {
-    const cells = rows[i].getElementsByTagName('td')
-    let found = false
-
-    for (let j = 0; j < cells.length; j++) {
-      const cellText = cells[j].textContent.toLowerCase()
-
-      if (cellText.indexOf(searchTerm) > -1) {
-        found = true
-        break
+  // Buscar en ambos sets para identificar diferencias
+  registros1.forEach(registro => {
+      if (!setRegistros2.has(registro)) {
+          diferencias.push(registro);
       }
-    }
+  });
 
-    if (found) {
-      rows[i].style.display = ''
-    } else {
-      rows[i].style.display = 'none'
-    }
-  }
+  registros2.forEach(registro => {
+      if (!setRegistros1.has(registro)) {
+          diferencias.push(registro);
+      }
+  });
+
+  return diferencias;
 }
 
-compararArchivos();
+function mostrarResultados(registros) {
+  const tbody = document.getElementById('tablabody');
+  tbody.innerHTML = ''; // Limpiar resultados previos
+
+  if (registros.length === 0) {
+      const fila = tbody.insertRow();
+      const celda = fila.insertCell(0);
+      celda.colSpan = 12;
+      celda.textContent = 'No se encontraron diferencias';
+      celda.classList.add('text-center');
+  } else {
+      registros.forEach(registro => {
+          const campos = registro.split(';');
+          const fila = tbody.insertRow();
+          campos.forEach((campo, index) => {
+              const celda = fila.insertCell(index);
+              celda.textContent = campo;
+          });
+      });
+  }
+}
